@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
+import { apiClient } from '@/lib/api-client';
 import {
   Play, Pause, RefreshCw, Upload, AlertCircle, CheckCircle, Clock,
   ArrowUpRight, Sparkles, Target, Zap
@@ -27,15 +28,13 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/v1/applier/applications', {
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
-      const data = await response.json();
+      const response = await apiClient.get('/applier/applications');
+      const data = response.data;
       if (Array.isArray(data)) {
         setRecentApps(data.slice(0, 4));
         
         // Compute metrics
-        const total = data.length;
+        const total = response.meta?.total || data.length;
         const submitted = data.filter((a: any) => a.status === 'submitted').length;
         const filling = data.filter((a: any) => a.status === 'filling').length;
         const failed = data.filter((a: any) => a.status === 'failed').length;
@@ -62,29 +61,15 @@ export default function DashboardPage() {
     try {
       // Connect mock naukri connection in case none exists
       // so the scan works cleanly
-      await fetch('http://localhost:4000/api/v1/aggregators/connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokens?.accessToken}`,
-        },
-        body: JSON.stringify({
-          aggregatorId: 'agg-naukri',
-          username: 'demo_user@email.com',
-          password: 'demo_password',
-          consentGiven: true,
-        }),
+      await apiClient.post('/aggregators/connect', {
+        aggregatorId: 'agg-naukri',
+        username: 'demo_user@email.com',
+        password: 'demo_password',
+        consentGiven: true,
       });
 
       // Run scanner scan call
-      await fetch('http://localhost:4000/api/v1/applier/scan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokens?.accessToken}`,
-        },
-        body: JSON.stringify({ aggregatorId: 'agg-naukri' }),
-      });
+      await apiClient.post('/applier/scan', { aggregatorId: 'agg-naukri' });
 
       fetchDashboardData();
     } catch (e) {

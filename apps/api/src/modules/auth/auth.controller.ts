@@ -28,6 +28,11 @@ class LoginDto {
   password: string;
 }
 
+class RefreshDto {
+  @IsString()
+  refreshToken: string;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -44,9 +49,8 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async refresh(@Request() req: any) {
-    return this.authService.refreshAccessToken(req.user.id);
+  async refresh(@Body() dto: RefreshDto) {
+    return this.authService.refreshAccessToken(dto.refreshToken);
   }
 }

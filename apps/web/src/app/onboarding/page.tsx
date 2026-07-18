@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
+import { apiClient } from '@/lib/api-client';
 import { FileText, Briefcase, Settings2, Link2, Sparkles, Upload, Loader2, Check } from 'lucide-react';
 import canvasConfetti from 'canvas-confetti';
 
@@ -45,28 +46,11 @@ export default function OnboardingPage() {
     formData.append('isPrimary', 'true');
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/assets/resumes/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${tokens?.accessToken}`,
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'File upload failed.');
-      }
-
+      const data = await apiClient.upload('/assets/resumes/upload', formData);
       setResumeId(data.id);
       
       // Fetch details to retrieve the parsed data
-      const detailResp = await fetch(`http://localhost:4000/api/v1/assets/resumes/${data.id}`, {
-        headers: {
-          'Authorization': `Bearer ${tokens?.accessToken}`,
-        },
-      });
-      const detailData = await detailResp.json();
+      const detailData = await apiClient.get(`/assets/resumes/${data.id}`);
       setParsedData(detailData.profile || detailData);
       setStep(2);
     } catch (err: any) {
@@ -93,31 +77,14 @@ export default function OnboardingPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/aggregators/connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokens?.accessToken}`,
-        },
-        body: JSON.stringify({
-          aggregatorId: 'agg-naukri',
-          username: aggUser || 'candidate_user',
-          password: aggPass || 'password_dev',
-        }),
+      await apiClient.post('/aggregators/connect', {
+        aggregatorId: 'agg-naukri',
+        username: aggUser || 'candidate_user',
+        password: aggPass || 'password_dev',
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Connection validation failed.');
-      }
 
       // Finish Onboarding flag
-      await fetch('http://localhost:4000/api/v1/users/onboarding/complete', {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${tokens?.accessToken}`,
-        },
-      });
+      await apiClient.patch('/users/onboarding/complete');
 
       updateUser({ onboardingComplete: true });
 

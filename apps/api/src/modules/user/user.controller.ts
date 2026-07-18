@@ -1,11 +1,11 @@
 // ============================================================
-// AutoApply AI — User Controller
+// AutoApply AI — User Controller (Production Hardened)
 // ============================================================
 
 import { Controller, Get, Patch, Body, UseGuards, Request, Delete } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { UserEntity } from './entities/user.entity';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -19,14 +19,8 @@ export class UserController {
   }
 
   @Patch('profile')
-  async updateProfile(@Request() req: any, @Body() body: Partial<UserEntity>) {
-    // Only allow updating specific fields
-    const safeData: Partial<UserEntity> = {};
-    if (body.name) safeData.name = body.name;
-    if (body.timezone) safeData.timezone = body.timezone;
-    if (body.locale) safeData.locale = body.locale;
-
-    const updatedUser = await this.userService.updateProfile(req.user.id, safeData);
+  async updateProfile(@Request() req: any, @Body() dto: UpdateProfileDto) {
+    const updatedUser = await this.userService.updateProfile(req.user.id, dto);
     return this.sanitizeUser(updatedUser);
   }
 
@@ -42,7 +36,7 @@ export class UserController {
     return { success: true, message: 'Account deleted successfully' };
   }
 
-  private sanitizeUser(user: UserEntity) {
+  private sanitizeUser(user: any) {
     return {
       id: user.id,
       email: user.email,

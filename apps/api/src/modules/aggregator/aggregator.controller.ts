@@ -5,6 +5,7 @@
 import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request, ParseUUIDPipe } from '@nestjs/common';
 import { AggregatorService } from './aggregator.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ConnectAggregatorDto } from './dto/connect-aggregator.dto';
 import { AGGREGATORS } from '@autoapply/shared';
 
 @Controller('aggregators')
@@ -23,8 +24,8 @@ export class AggregatorController {
   }
 
   @Post('connect')
-  async connect(@Request() req: any, @Body() body: any) {
-    return this.aggregatorService.connect(req.user.id, body);
+  async connect(@Request() req: any, @Body() dto: ConnectAggregatorDto) {
+    return this.aggregatorService.connect(req.user.id, dto);
   }
 
   @Delete('connections/:id')

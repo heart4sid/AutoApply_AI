@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
+import { apiClient } from '@/lib/api-client';
 import {
   Brain, Award, Sparkles, TrendingUp, AlertCircle, BookOpen,
   ArrowRight, CheckCircle2, ChevronRight, Loader2, Info
@@ -20,16 +21,10 @@ export default function InsightsPage() {
   const fetchInsights = async () => {
     setLoading(true);
     try {
-      const gapResp = await fetch('http://localhost:4000/api/v1/insights/skill-gap', {
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
-      const gapData = await gapResp.json();
+      const gapData = await apiClient.get('/insights/skill-gap');
       if (Array.isArray(gapData)) setGaps(gapData);
 
-      const sugResp = await fetch('http://localhost:4000/api/v1/insights/suggestions', {
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
-      const sugData = await sugResp.json();
+      const sugData = await apiClient.get('/insights/suggestions');
       if (Array.isArray(sugData)) setSuggestions(sugData);
     } catch (e) {
       console.error('Error fetching insights:', e);

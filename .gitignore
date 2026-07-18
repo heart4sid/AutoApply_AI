@@ -8,6 +8,10 @@ dist/
 out/
 .turbo/
 
+# Database
+*.sqlite
+database.sqlite
+
 # Environment
 .env
 .env.local

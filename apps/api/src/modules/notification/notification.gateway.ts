@@ -1,5 +1,5 @@
 // ============================================================
-// AutoApply AI — WebSocket Gateway (Socket.IO)
+// AutoApply AI — WebSocket Gateway (Production Hardened)
 // ============================================================
 
 import {
@@ -9,17 +9,23 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.NODE_ENV === 'production'
+      ? process.env.FRONTEND_URL
+      : [process.env.FRONTEND_URL || 'http://localhost:3000', 'http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
   },
 })
 export class NotificationGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  private readonly logger = new Logger('WebSocketGateway');
+
   @WebSocketServer()
   server: Server;
 
-  private userSockets: Map<string, string[]> = new Map(); // userId -> socketIds[]
+  private userSockets: Map<string, string[]> = new Map();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -40,6 +46,7 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
         client.disconnect();
         return;
       }
+
       const payload = this.jwtService.verify(token, {
         secret: this.config.get('JWT_SECRET'),
       });
@@ -47,16 +54,14 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
       const userId = payload.sub;
       client.data.userId = userId;
 
-      // Map sockets to userId
       const sockets = this.userSockets.get(userId) || [];
       sockets.push(client.id);
       this.userSockets.set(userId, sockets);
 
-      // Join user specific room
       client.join(`user:${userId}`);
-      console.log(`[WS] Client connected: ${client.id} (user: ${userId})`);
-    } catch (e) {
-      console.error('[WS] Connection authorization failed:', e.message);
+      this.logger.log(`Client connected: ${client.id} (user: ${userId})`);
+    } catch (e: any) {
+      this.logger.warn(`Connection auth failed: ${e.message}`);
       client.disconnect();
     }
   }
@@ -72,10 +77,9 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
         this.userSockets.delete(userId);
       }
     }
-    console.log(`[WS] Client disconnected: ${client.id}`);
+    this.logger.debug(`Client disconnected: ${client.id}`);
   }
 
-  // ── Emit Real-time Event to User ──
   emitToUser(userId: string, event: string, payload: any) {
     this.server.to(`user:${userId}`).emit(event, {
       type: event,

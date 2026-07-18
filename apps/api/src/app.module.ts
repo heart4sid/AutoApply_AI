@@ -1,5 +1,5 @@
 // ============================================================
-// AutoApply AI — Root Application Module
+// AutoApply AI — Root Application Module (Production Hardened)
 // ============================================================
 
 import * as fs from 'fs';
@@ -10,7 +10,7 @@ const envPath = path.resolve(__dirname, '../../../.env');
 if (fs.existsSync(envPath)) {
   const envConfig = fs.readFileSync(envPath, 'utf8');
   envConfig.split('\n').forEach(line => {
-    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?$/);
     if (match) {
       const key = match[1];
       let val = match[2] || '';
@@ -27,6 +27,8 @@ if (fs.existsSync(envPath)) {
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
@@ -45,18 +47,39 @@ const importsList: any[] = [
     envFilePath: '../../.env',
   }),
 
+  // ── Rate Limiting ──
+  ThrottlerModule.forRoot([
+    {
+      name: 'short',
+      ttl: 1000,   // 1 second window
+      limit: 10,   // 10 requests per second
+    },
+    {
+      name: 'medium',
+      ttl: 60000,  // 1 minute window
+      limit: 100,  // 100 requests per minute
+    },
+    {
+      name: 'long',
+      ttl: 3600000, // 1 hour window
+      limit: 1000,  // 1000 requests per hour
+    },
+  ]),
+
   TypeOrmModule.forRootAsync({
     imports: [ConfigModule],
     inject: [ConfigService],
     useFactory: (config: ConfigService) => {
       const sqlite = config.get('USE_SQLITE') === 'true';
+      const isDev = config.get('NODE_ENV') !== 'production';
+
       if (sqlite) {
         return {
           type: 'sqlite',
           database: './database.sqlite',
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: true,
-          logging: config.get('NODE_ENV') === 'development' ? ['error'] : false,
+          synchronize: isDev, // NEVER synchronize in production
+          logging: isDev ? ['error'] : false,
         };
       }
       return {
@@ -64,11 +87,19 @@ const importsList: any[] = [
         host: config.get('DATABASE_HOST', 'localhost'),
         port: config.get('DATABASE_PORT', 5432),
         username: config.get('DATABASE_USER', 'autoapply'),
-        password: config.get('DATABASE_PASSWORD', 'autoapply_dev_2026'),
+        password: config.get('DATABASE_PASSWORD'),
         database: config.get('DATABASE_NAME', 'autoapply_db'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: config.get('NODE_ENV') === 'development',
-        logging: config.get('NODE_ENV') === 'development' ? ['error'] : false,
+        synchronize: false, // Always use migrations in production
+        logging: isDev ? ['error'] : false,
+        // Connection pool settings for production
+        ...(!isDev && {
+          extra: {
+            max: 20,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 5000,
+          },
+        }),
       };
     },
   }),
@@ -102,5 +133,12 @@ importsList.push(
 @Module({
   imports: importsList,
   controllers: [HealthController],
+  providers: [
+    // Apply rate limiting globally
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

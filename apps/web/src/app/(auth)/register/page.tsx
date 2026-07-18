@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
+import { apiClient } from '@/lib/api-client';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -31,18 +32,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed. Please check validation rules.');
-      }
-
+      const data = await apiClient.post('/auth/register', { name, email, password });
       setAuth(data.user, data.tokens);
       router.push('/onboarding');
     } catch (err: any) {

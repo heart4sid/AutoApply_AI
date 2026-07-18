@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
+import { apiClient } from '@/lib/api-client';
 import {
   Link2, Link2Off, Loader2, ShieldCheck, Check, Info, AlertTriangle
 } from 'lucide-react';
@@ -25,10 +26,7 @@ export default function AggregatorsPage() {
 
   const fetchConnections = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/v1/aggregators/connections', {
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
-      const data = await response.json();
+      const data = await apiClient.get('/aggregators/connections');
       if (Array.isArray(data)) {
         setConnections(data);
       }
@@ -56,24 +54,12 @@ export default function AggregatorsPage() {
     setConnecting(true);
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/aggregators/connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokens?.accessToken}`,
-        },
-        body: JSON.stringify({
-          aggregatorId: selectedAgg.id,
-          username,
-          password,
-          consentGiven: true,
-        }),
+      await apiClient.post('/aggregators/connect', {
+        aggregatorId: selectedAgg.id,
+        username,
+        password,
+        consentGiven: true,
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Validation failed. Check your password.');
-      }
 
       await fetchConnections();
       setSelectedAgg(null);
@@ -88,14 +74,8 @@ export default function AggregatorsPage() {
     if (!confirm('Are you sure you want to disconnect this platform? All background application scans will stop.')) return;
 
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/aggregators/connections/${connId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
-
-      if (response.ok) {
-        await fetchConnections();
-      }
+      await apiClient.delete(`/aggregators/connections/${connId}`);
+      await fetchConnections();
     } catch (e) {
       console.error('Disconnect error:', e);
     }

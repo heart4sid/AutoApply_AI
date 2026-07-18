@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
+import { apiClient } from '@/lib/api-client';
 import {
   Upload, FileText, Trash2, Award, Calendar, ExternalLink,
   ChevronRight, Sparkles, Check, Loader2
@@ -22,10 +23,7 @@ export default function AssetsPage() {
 
   const fetchResumes = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/v1/assets/resumes', {
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
-      const data = await response.json();
+      const data = await apiClient.get('/assets/resumes');
       if (Array.isArray(data)) {
         setResumes(data);
         if (data.length > 0 && !selectedResume) {
@@ -47,10 +45,7 @@ export default function AssetsPage() {
     setResumeDetails(null);
 
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/assets/resumes/${resume.id}`, {
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
-      const data = await response.json();
+      const data = await apiClient.get(`/assets/resumes/${resume.id}`);
       setResumeDetails(data.profile);
     } catch (e) {
       console.error('Error loading resume profile:', e);
@@ -72,17 +67,7 @@ export default function AssetsPage() {
     formData.append('isPrimary', resumes.length === 0 ? 'true' : 'false');
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/assets/resumes/upload', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-        body: formData,
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'File upload failed');
-      }
-
+      const data = await apiClient.upload('/assets/resumes/upload', formData);
       await fetchResumes();
       handleSelectResume(data);
     } catch (err: any) {
@@ -97,18 +82,12 @@ export default function AssetsPage() {
     if (!confirm('Are you sure you want to delete this resume variant?')) return;
 
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/assets/resumes/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
-
-      if (response.ok) {
-        if (selectedResume?.id === id) {
-          setSelectedResume(null);
-          setResumeDetails(null);
-        }
-        await fetchResumes();
+      await apiClient.delete(`/assets/resumes/${id}`);
+      if (selectedResume?.id === id) {
+        setSelectedResume(null);
+        setResumeDetails(null);
       }
+      await fetchResumes();
     } catch (err) {
       console.error('Delete variant error:', err);
     }

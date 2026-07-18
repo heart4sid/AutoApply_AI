@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
+import { apiClient } from '@/lib/api-client';
 import { io, Socket } from 'socket.io-client';
 import {
   Activity, CheckCircle, AlertCircle, Clock, RefreshCw, X,
@@ -22,10 +23,8 @@ export default function ActivityPage() {
   // ── Fetch Applications ──
   const fetchApplications = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/v1/applier/applications', {
-        headers: { 'Authorization': `Bearer ${tokens?.accessToken}` },
-      });
-      const data = await response.json();
+      const response = await apiClient.get('/applier/applications');
+      const data = response.data;
       if (Array.isArray(data)) {
         setApplications(data);
       }

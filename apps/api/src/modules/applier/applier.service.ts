@@ -89,12 +89,29 @@ export class ApplierService {
     return results;
   }
 
-  // ── Get User Applications ──
-  async getApplications(userId: string): Promise<ApplicationRecordEntity[]> {
-    return this.recordRepo.find({
+  // ── Get User Applications (Paginated) ──
+  async getApplications(userId: string, pagination?: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'ASC' | 'DESC' }) {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 20;
+    const sortBy = pagination?.sortBy || 'createdAt';
+    const sortOrder = pagination?.sortOrder || 'DESC';
+
+    const [data, total] = await this.recordRepo.findAndCount({
       where: { userId },
-      order: { createdAt: 'DESC' },
+      order: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   // ── Get Single Application Detail ──

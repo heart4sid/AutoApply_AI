@@ -1,5 +1,5 @@
 // ============================================================
-// AutoApply AI — Auth State Store (Zustand)
+// AutoApply AI — Auth State Store (Zustand with Persistence)
 // ============================================================
 
 import { create } from 'zustand';

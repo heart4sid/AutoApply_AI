@@ -4,6 +4,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { JobListing } from '@autoapply/shared';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class ScorerService {
@@ -28,9 +29,12 @@ export class ScorerService {
       keywordScore = 50;
     }
 
-    // 2. Semantic matching simulation
+    // 2. Semantic matching simulation (Deterministic Hash-Based)
+    const input = `${job.title}-${profile.name || ''}-${job.company || ''}`;
+    const hash = crypto.createHash('md5').update(input).digest('hex');
+    const hashInt = parseInt(hash.substring(0, 8), 16);
     const matchWeights = [75, 82, 88, 91, 65];
-    semanticScore = matchWeights[Math.floor(Math.random() * matchWeights.length)];
+    semanticScore = matchWeights[hashInt % matchWeights.length];
 
     // 3. Structural matching checks
     if (job.location && profile.location) {

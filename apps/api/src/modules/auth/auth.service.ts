@@ -90,17 +90,25 @@ export class AuthService {
   }
 
   // ── Refresh Token ──
-  async refreshAccessToken(userId: string) {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
+  async refreshAccessToken(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+      });
+      const userId = payload.sub;
+      const user = await this.userRepo.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
 
-    const tokens = await this.generateTokens(user);
-    return {
-      user: this.sanitizeUser(user),
-      tokens,
-    };
+      const tokens = await this.generateTokens(user);
+      return {
+        user: this.sanitizeUser(user),
+        tokens,
+      };
+    } catch (e) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
   }
 
   // ── Token Generation ──
