@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Custom Theme System ── */
+:root {
+  /* Default Dark Mode Custom Properties (Nexus Dark Theme) */
+  --n-950: #0a0a0f;
+  --n-900: #111118;
+  --n-800: #1c1c27;
+  --n-100: #e5e5ed;
+  
+  --p-50: #eef2ff;
+  --p-100: #d9e2fc;
+  --p-500: #4f6bf6;
+  --p-600: #3a4fd4;
+  --p-900: #1e2a78;
+
+  --a-400: #36d399;
+  --a-500: #22c55e;
+  --a-600: #16a34a;
+
+  --bg-page: var(--n-950);
+  --bg-card: var(--n-900);
+  --bg-elevated: var(--n-800);
+  --text-main: var(--n-100);
+  --text-muted: #8e8e9e;
+  --border-color: #2e2e3e;
+}
+
+[data-theme='light'] {
+  /* Light Mode Custom Properties (Nexus Light Theme) */
+  --n-950: #f8f9fc;
+  --n-900: #ffffff;
+  --n-800: #f1f3f9;
+  --n-100: #1c1c27;
+
+  --p-50: #1e2a78;
+  --p-100: #2a3baf;
+  --p-500: #4f6bf6;
+  --p-600: #3a4fd4;
+  --p-900: #eef2ff;
+
+  --bg-page: var(--n-950);
+  --bg-card: var(--n-900);
+  --bg-elevated: var(--n-800);
+  --text-main: var(--n-100);
+  --text-muted: #5e5e6e;
+  --border-color: #d1d5db;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(17, 17, 24, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+[data-theme='light'] .glass {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-page);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--p-500);
+}
